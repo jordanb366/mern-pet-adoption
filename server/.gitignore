@@ -17,4 +17,4 @@ coverage/
 .DS_Store
 
 # Misc.
-ToDoList.md
+/ToDoList.md
