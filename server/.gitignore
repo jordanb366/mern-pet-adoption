@@ -16,5 +16,3 @@ logs/
 coverage/
 .DS_Store
 
-# Misc.
-/ToDoList.md
