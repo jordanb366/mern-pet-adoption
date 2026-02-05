@@ -1,0 +1,17 @@
+# Node
+node_modules/
+
+# Uploads & storage
+uploads/
+uploads/**
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs and temp
+logs/
+*.log
+coverage/
+.DS_Store

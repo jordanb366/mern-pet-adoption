@@ -1,0 +1,12 @@
+.app-footer {
+  width: 100%;
+  margin-top: auto;
+}
+
+.app-footer .container {
+  max-width: 1100px;
+}
+
+.app-footer .text-muted {
+  opacity: 0.8;
+}
