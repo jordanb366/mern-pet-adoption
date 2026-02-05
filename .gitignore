@@ -50,3 +50,6 @@ temp/
 *.pem
 *.key
 *.crt
+
+# Misc.
+/ToDoList.md
