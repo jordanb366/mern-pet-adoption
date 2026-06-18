@@ -20,6 +20,8 @@ app.use("/uploads", express.static(uploadDir));
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/pets", require("./routes/pets"));
 app.use("/api/adoptions", require("./routes/adoptions"));
+app.use("/api/admin", require("./routes/admin"));
+app.use("/api/users", require("./routes/users"));
 
 // serve client build in production
 if (process.env.NODE_ENV === "production") {

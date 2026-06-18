@@ -2,6 +2,8 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import Home from "./pages/Home";
 import Pets from "./pages/Pets";
+import UserProfile from "./pages/UserProfile";
+import AdminDashboard from "./pages/AdminDashboard";
 import PetDetail from "./pages/PetDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -28,7 +30,9 @@ export default function App() {
               <Route path="/pets" element={<Pets />} />
               <Route path="/pets/:id" element={<PetDetail />} />
               <Route path="/admin/adoptions" element={<AdminAdoptions />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/my-requests" element={<MyRequests />} />
+              <Route path="/profile" element={<UserProfile />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
@@ -80,10 +84,24 @@ function TopNav() {
                 </Link>
               </li>
             )}
+            {user && user.role === "admin" && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/admin/dashboard">
+                  Dashboard
+                </Link>
+              </li>
+            )}
             {user && (
               <li className="nav-item">
                 <Link className="nav-link" to="/my-requests">
                   My Requests
+                </Link>
+              </li>
+            )}
+            {user && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/profile">
+                  Profile
                 </Link>
               </li>
             )}
