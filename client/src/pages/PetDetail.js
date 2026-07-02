@@ -12,13 +12,60 @@ export default function PetDetail() {
   const [requestOpen, setRequestOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [addingFavorite, setAddingFavorite] = useState(false);
+
+  // Check if pet is in favorites on load
+  useEffect(() => {
+    if (!user || !token) {
+      setIsFavorite(false);
+      return;
+    }
+
+    fetch(`${API_URL}/api/favorites`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((favorites) => {
+        setIsFavorite(favorites.some((fav) => fav._id === id));
+      })
+      .catch(() => setIsFavorite(false));
+  }, [id, user, token, API_URL]);
+
+  // Toggle favorite
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      toast.error("Please log in to add favorites");
+      return;
+    }
+
+    setAddingFavorite(true);
+    const method = isFavorite ? "DELETE" : "POST";
+
+    fetch(`${API_URL}/api/favorites/${id}`, {
+      method,
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setIsFavorite(!isFavorite);
+        toast.success(
+          isFavorite ? "Removed from favorites" : "Added to favorites",
+        );
+      })
+      .catch((err) => {
+        toast.error("Failed to update favorites");
+        console.error(err);
+      })
+      .finally(() => setAddingFavorite(false));
+  };
 
   useEffect(() => {
     fetch(`${API_URL}/api/pets/${id}`)
       .then((res) => res.json())
       .then((data) => setPet(data))
       .catch(() => {});
-  }, [id]);
+  }, [id, API_URL]);
 
   if (!pet) return <p>Loading...</p>;
 
@@ -76,6 +123,21 @@ export default function PetDetail() {
                     >
                       Request Adoption
                     </button>
+                  )}
+                  {user && user.role !== "admin" && (
+                    <>
+                      <button
+                        className={`btn btn-lg w-100 mt-2 ${
+                          isFavorite ? "btn-danger" : "btn-outline-danger"
+                        }`}
+                        onClick={handleToggleFavorite}
+                        disabled={addingFavorite}
+                      >
+                        {isFavorite
+                          ? "❤️ Remove from Favorites"
+                          : "🤍 Add to Favorites"}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
