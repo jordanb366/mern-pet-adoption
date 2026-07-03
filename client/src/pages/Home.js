@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
+  const { user } = useAuth();
   return (
     <div className="container mt-5">
       <div className="row justify-content-center">
@@ -14,12 +16,18 @@ export default function Home() {
             <Link to="/pets" className="btn btn-primary btn-lg px-4 me-md-2">
               Browse Pets
             </Link>
-            <Link
-              to="/register"
-              className="btn btn-outline-secondary btn-lg px-4"
-            >
-              Sign Up
-            </Link>
+            {!user ? (
+              <Link
+                to="/register"
+                className="btn btn-outline-secondary btn-lg px-4"
+              >
+                Sign Up
+              </Link>
+            ) : (
+              <span className="btn btn-outline-secondary btn-lg px-4 disabled">
+                Welcome back, {user.name}!
+              </span>
+            )}
           </div>
         </div>
       </div>

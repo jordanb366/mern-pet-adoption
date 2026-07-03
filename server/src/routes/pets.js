@@ -79,4 +79,28 @@ router.delete("/:id", auth, async (req, res) => {
   }
 });
 
+// GET /api/pets/stats/favorite-counts - Get count of favorites for each pet
+router.get("/stats/favorite-counts", async (req, res) => {
+  try {
+    const User = require("../models/User");
+
+    // Aggregate favorite counts by pet
+    const results = await User.aggregate([
+      { $unwind: "$favorites" },
+      { $group: { _id: "$favorites", count: { $sum: 1 } } },
+    ]);
+
+    // Convert to object format { petId: count }
+    const counts = {};
+    results.forEach((item) => {
+      counts[item._id.toString()] = item.count;
+    });
+
+    res.json(counts);
+  } catch (err) {
+    console.error("GET /stats/favorite-counts error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+});
+
 module.exports = router;

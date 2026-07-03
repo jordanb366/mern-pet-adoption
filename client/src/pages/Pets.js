@@ -9,6 +9,9 @@ export default function Pets() {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [favoriteCounts, setFavoriteCounts] = useState({});
+  const [userFavorites, setUserFavorites] = useState(new Set());
+  const [loadingFavorites, setLoadingFavorites] = useState({});
 
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
   const [query, setQuery] = useState("");
@@ -20,7 +23,7 @@ export default function Pets() {
     maxAge: "",
     location: "",
   });
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   const getFilteredPets = () => {
     return pets.filter((p) => {
@@ -80,6 +83,101 @@ export default function Pets() {
       mounted = false;
     };
   }, [API_URL]);
+
+  // Fetch favorite counts for all pets
+  useEffect(() => {
+    let mounted = true;
+
+    fetch(`${API_URL}/api/pets/stats/favorite-counts`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (mounted) setFavoriteCounts(data || {});
+      })
+      .catch((err) => {
+        console.error("Failed to load favorite counts:", err);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [API_URL]);
+
+  // Fetch current user's favorites
+  useEffect(() => {
+    if (!user || !token) {
+      setUserFavorites(new Set());
+      return;
+    }
+
+    let mounted = true;
+
+    fetch(`${API_URL}/api/favorites`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((favorites) => {
+        if (mounted) {
+          setUserFavorites(new Set(favorites.map((fav) => fav._id)));
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load user favorites:", err);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [API_URL, user, token]);
+
+  // Toggle favorite for a pet
+  const handleToggleFavorite = (petId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      toast.error("Please log in to add favorites");
+      return;
+    }
+
+    setLoadingFavorites((prev) => ({ ...prev, [petId]: true }));
+    const isFavorited = userFavorites.has(petId);
+    const method = isFavorited ? "DELETE" : "POST";
+
+    fetch(`${API_URL}/api/favorites/${petId}`, {
+      method,
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setUserFavorites((prev) => {
+          const newSet = new Set(prev);
+          if (isFavorited) {
+            newSet.delete(petId);
+          } else {
+            newSet.add(petId);
+          }
+          return newSet;
+        });
+
+        // Refresh favorite counts
+        fetch(`${API_URL}/api/pets/stats/favorite-counts`)
+          .then((res) => res.json())
+          .then((data) => {
+            setFavoriteCounts(data || {});
+          });
+
+        toast.success(
+          isFavorited ? "Removed from favorites" : "Added to favorites",
+        );
+      })
+      .catch((err) => {
+        toast.error("Failed to update favorites");
+        console.error(err);
+      })
+      .finally(() => {
+        setLoadingFavorites((prev) => ({ ...prev, [petId]: false }));
+      });
+  };
 
   return (
     <div className="container mt-4">
@@ -222,12 +320,37 @@ export default function Pets() {
                           className="card-text text-muted small"
                         />
                       )}
-                      <Link
-                        to={`/pets/${p._id}`}
-                        className="btn btn-primary btn-sm"
-                      >
-                        View Details
-                      </Link>
+                      <div className="mt-2 mb-3">
+                        <small className="text-muted">
+                          ❤️ {favoriteCounts[p._id] || 0} people favorited this
+                        </small>
+                      </div>
+                      <div className="d-flex gap-2">
+                        <Link
+                          to={`/pets/${p._id}`}
+                          className="btn btn-primary btn-sm flex-grow-1"
+                        >
+                          View Details
+                        </Link>
+                        {user && user.role !== "admin" && (
+                          <button
+                            className={`btn btn-sm ${
+                              userFavorites.has(p._id)
+                                ? "btn-danger"
+                                : "btn-outline-danger"
+                            }`}
+                            onClick={(e) => handleToggleFavorite(p._id, e)}
+                            disabled={loadingFavorites[p._id]}
+                            title={
+                              userFavorites.has(p._id)
+                                ? "Remove from favorites"
+                                : "Add to favorites"
+                            }
+                          >
+                            {userFavorites.has(p._id) ? "❤️" : "🤍"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {user && user.role === "admin" && (
                       <div className="card-footer bg-light">
@@ -236,8 +359,8 @@ export default function Pets() {
                           onUpdated={(updated) =>
                             setPets((prev) =>
                               prev.map((x) =>
-                                x._id === updated._id ? updated : x
-                              )
+                                x._id === updated._id ? updated : x,
+                              ),
                             )
                           }
                           onDeleted={(id) =>
