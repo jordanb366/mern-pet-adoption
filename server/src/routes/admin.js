@@ -45,7 +45,14 @@ router.get("/stats", auth, adminOnly, async (req, res) => {
     ]);
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const recentSignups = await User.countDocuments({
+    const recentSignupsData = await User.find({
+      createdAt: { $gte: sevenDaysAgo },
+    })
+      .select("name email createdAt")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    const recentSignupsCount = await User.countDocuments({
       createdAt: { $gte: sevenDaysAgo },
     });
 
@@ -53,7 +60,10 @@ router.get("/stats", auth, adminOnly, async (req, res) => {
       totalAdoptions,
       pendingRequests,
       mostPopularPets,
-      recentSignups,
+      recentSignups: {
+        count: recentSignupsCount,
+        users: recentSignupsData,
+      },
     });
   } catch (err) {
     console.error("Admin stats error:", err);

@@ -4,6 +4,7 @@ const auth = require("../middleware/auth");
 const AdoptionRequest = require("../models/AdoptionRequest");
 const Pet = require("../models/Pet");
 const mailer = require("../utils/mailer");
+const emailTemplates = require("../utils/emailTemplates");
 
 // Create an adoption request (logged-in users)
 router.post("/", auth, async (req, res) => {
@@ -31,6 +32,29 @@ router.post("/", auth, async (req, res) => {
     // populate explicitly to avoid chaining issues and expose useful data
     await doc.populate("user", "name email");
     await doc.populate("pet", "name species");
+
+    // Send confirmation email to requester (non-blocking)
+    try {
+      const emailContent = emailTemplates.getAdoptionRequestConfirmation(
+        doc.user.name,
+        doc.pet.name,
+        message,
+      );
+      const mailResult = await mailer.sendMail({
+        to: doc.user.email,
+        subject: `Adoption Request Confirmed for ${doc.pet.name}`,
+        text: emailContent,
+      });
+      // Attach preview URL to response during development (Ethereal only)
+      if (mailResult && mailResult.preview) {
+        const resp = { ...doc.toObject(), mailPreview: mailResult.preview };
+        return res.json(resp);
+      }
+    } catch (emailErr) {
+      console.error("Failed to send adoption confirmation email:", emailErr);
+      // Don't throw—request is already saved, email is just a notification
+    }
+
     res.json(doc);
   } catch (err) {
     console.error("Adoptions POST error:", err);
@@ -74,7 +98,7 @@ router.put("/:id", auth, async (req, res) => {
       await Pet.findByIdAndUpdate(reqDoc.pet, { adopted: true });
       await AdoptionRequest.updateMany(
         { pet: reqDoc.pet, _id: { $ne: reqDoc._id }, status: "pending" },
-        { status: "rejected" }
+        { status: "rejected" },
       );
     }
 
@@ -83,9 +107,28 @@ router.put("/:id", auth, async (req, res) => {
     // send notification email to requester about status change (if configured)
     try {
       const to = reqDoc.user.email;
-      const subject = `Adoption request status: ${reqDoc.status}`;
-      const text = `Hello ${reqDoc.user.name},\n\nYour adoption request for ${reqDoc.pet.name} is now '${reqDoc.status}'.\n\nThanks,\nPet Adoption Team`;
-      const mailResult = await mailer.sendMail({ to, subject, text });
+      let emailContent;
+
+      if (reqDoc.status === "approved") {
+        emailContent = emailTemplates.getAdoptionApprovalEmail(
+          reqDoc.user.name,
+          reqDoc.pet.name,
+        );
+      } else if (reqDoc.status === "rejected") {
+        emailContent = emailTemplates.getAdoptionRejectionEmail(
+          reqDoc.user.name,
+          reqDoc.pet.name,
+        );
+      } else {
+        // For pending status (shouldn't normally happen, but handle it)
+        emailContent = `Your adoption request status has been updated to: ${reqDoc.status}`;
+      }
+
+      const mailResult = await mailer.sendMail({
+        to,
+        subject: `Adoption Request ${reqDoc.status.charAt(0).toUpperCase() + reqDoc.status.slice(1)} - ${reqDoc.pet.name}`,
+        text: emailContent,
+      });
       // attach preview URL to response during development/testing when available
       if (mailResult && mailResult.preview) {
         const resp = { ...reqDoc.toObject(), mailPreview: mailResult.preview };

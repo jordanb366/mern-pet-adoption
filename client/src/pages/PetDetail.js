@@ -205,7 +205,29 @@ export default function PetDetail() {
                       if (!res.ok) {
                         toast.error(data.msg || "Failed to submit request");
                       } else {
-                        toast.success("Adoption request submitted");
+                        // Show success message with email preview link if available (dev mode)
+                        if (data.mailPreview) {
+                          toast.success(
+                            <div>
+                              ✓ Adoption request submitted!{" "}
+                              <a
+                                href={data.mailPreview}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: "black",
+                                  fontWeight: "bold",
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                📧 View Email
+                              </a>
+                            </div>,
+                            { autoClose: 8000 },
+                          );
+                        } else {
+                          toast.success("Adoption request submitted");
+                        }
                         setRequestOpen(false);
                         setMessage("");
                       }
