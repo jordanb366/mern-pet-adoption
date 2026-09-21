@@ -8,7 +8,7 @@ const cors = require("cors");
 const app = express();
 
 // Ensure uploads directory exists for storing images
-const uploadDir = path.join(__dirname, "..", "uploads");
+const uploadDir = path.join(__dirname, "..", "..", "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
