@@ -26,4 +26,4 @@ COPY --from=client-builder /app/client/build ./client/build
 RUN mkdir -p /app/uploads
 EXPOSE 5001
 WORKDIR /app/server
-CMD ["node", "src/server.js"]
+CMD ["node", "server.js"]
