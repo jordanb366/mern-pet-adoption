@@ -16,14 +16,16 @@ RUN npm install --production --legacy-peer-deps
 FROM node:20-slim AS release
 WORKDIR /app
 ENV NODE_ENV=production
+
 # bring server node_modules
 COPY --from=server-deps /app/server/node_modules ./server/node_modules
-# copy server source
+
+# copy backend source
 COPY server/ ./server
-# copy built client into /app/client/build so server can serve it
+
+# copy built client
 COPY --from=client-builder /app/client/build ./client/build
-# ensure uploads dir exists
-RUN mkdir -p /app/uploads
+
 EXPOSE 5001
 WORKDIR /app/server
-CMD ["node", "server.js"]
+CMD ["node", "src/server.js"]
